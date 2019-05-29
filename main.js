@@ -7,7 +7,49 @@ class RegularSprite {
 
     }
 }
+function getDistance(x,y,xx,yy, sx, sy){
 
+    if (((x + 10) > xx && (x) < xx+sx) && ((y+10)>yy && (y)<yy+sy)){
+        return true;
+    }
+}
+class Projectile {
+    constructor(ix, iy, xx, yy, a, color) {
+        this.ix = ix;
+        this.iy = iy;
+        this.xx = xx;
+        this.yy = yy;
+        this.a = a;
+        this.color = color;
+    }
+    build(){
+
+    }
+    draw(ctx) {
+        this.ix=this.ix+this.a
+        if(this.ix>=495 || this.ix<=-5){
+            for (let i=0; i<sprites.length; i++) {
+                if(sprites[i]==this){
+                    sprites.splice(i, 1)
+                    fire=false;
+                }
+            }
+        }
+        for (const sprite of sprites) {
+            if (getDistance(this.ix, this.iy, sprite.x, sprite.y, sprite.xx, sprite.yy) == true &&sprite instanceof Enemy) {
+                for (let i = 0; i < sprites.length; i++) {
+                    if (sprites[i] == sprite || sprites[i] == this) {
+                        sprites.splice(i, 1)
+                        console.log("yes")
+                    }
+                }
+                fire = false;
+            }
+        }
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.ix, this.iy, this.xx, this.yy);
+    }
+}
 class PhysicsSprite {
     constructor(x, y, xx, yy, id) {
         this.x = x;
@@ -22,10 +64,18 @@ class PhysicsSprite {
         let gravity=Math.round(gravy)
         let bottom = this.y+this.yy;
         let width = this.x+this.xx
-        let cvbg = 10
+        let cvbg = 100;
         for (const sprite of sprites) {
-            if (((sprite.y-bottom) < cb && bottom<=sprite.y) && sprite.id != this.id && ((width > sprite.x) && (this.x < sprite.x + sprite.xx))) {
+            /*if (((sprite.y-bottom) < cb && bottom<=sprite.y) && sprite.id != this.id && ((width > sprite.x) && (this.x < sprite.x + sprite.xx))) {
                 cb = sprite.y
+            }*/
+            if (getDistance(this.x, this.y + 10, sprite.x, sprite.y, sprite.xx, sprite.yy) == true && sprite.id!=this.id){
+                cb = sprite.y
+            }
+            if (getDistance(this.x, this.y + gravity-3, sprite.x, sprite.y, sprite.xx, sprite.yy) == true && sprite.id != this.id) {
+                if(gravy<0){
+                    gravy=0;
+                }
             }
         }
         if(bottom+gravity<=cb) {
@@ -56,14 +106,37 @@ class Player extends PhysicsSprite {
         this.color = color;
     }
     ml() {
-        if(this.x-5>-5){
+        let tsotl=false;
+        /*if(this.x-5>-5){
             this.x = this.x - 5
+        }*/
+        for (const sprite of sprites) {
+            if (getDistance(this.x-5, this.y, sprite.x, sprite.y, sprite.xx, sprite.yy) == true && sprite.id != this.id) {
+                tsotl = true
+            }
+        }
+        if(tsotl==false && this.x-5>-5){
+            this.x = this.x-5
         }
     }
     mr() {
-        if(this.x+5<495){
+        
+        let tsotl = false;
+        /*if(this.x+5<495){
             this.x=this.x+5
+        }*/
+        for (const sprite of sprites) {
+            if (getDistance(this.x + 5, this.y, sprite.x, sprite.y, sprite.xx, sprite.yy) == true && sprite.id != this.id) {
+                tsotl = true
+            }
         }
+        if (tsotl == false && this.x + 5 < 495) {
+            this.x = this.x + 5
+        }
+    }
+    fire(ix, iy, xx, yy, a) {
+        let projectile = new Projectile(ix, iy, xx, yy, a, "black")
+        sprites.push(projectile);
     }
     draw(ctx) {
         ctx.fillStyle = this.color;
@@ -89,6 +162,12 @@ class Enemy extends PhysicsSprite {
         if (this.zz==false && this.move<x) {
             this.x=this.x+2.5
             this.move= this.move+2.5
+            for (const sprite of sprites) {
+                if (getDistance(this.x + 2.5, this.y, sprite.x, sprite.y, sprite.xx, sprite.yy) == true && sprite.id != this.id) {
+                    console.log("Game over")
+                    gameover=true
+                }
+            }
         }
         if (this.move==x){
             this.zz=true
@@ -96,7 +175,13 @@ class Enemy extends PhysicsSprite {
         if (this.zz == true && this.move > (x-(2*x))) {
             this.x = this.x - 2.5
             this.move = this.move - 2.5
-        }
+            for (const sprite of sprites) {
+                if (getDistance(this.x - 2.5, this.y, sprite.x, sprite.y, sprite.xx, sprite.yy) == true && sprite.id != this.id) {
+                    console.log("Game over")
+                    gameover=true
+                }
+            }
+        }      
     }
     gravity(mass, cs) {
         let cb = 500;
@@ -145,10 +230,13 @@ class CollisionBox extends RegularSprite {
 
 gravy=0
 othersg=0
+let gameover=false
 var downa=false;
 var downd = false;
+var ld = 1;
 var wk="";
 var depth;
+let fire = false;
 let ctx = null;
 let chao = new CollisionBox(50, 450, 400, 50, 'green');
 let floating = new CollisionBox(0, 300, 100, 50, 'green');
@@ -171,13 +259,23 @@ document.addEventListener('keydown', function (event) {
     wk = String.fromCharCode(x)
     if(wk=="A"){
         downa=true;
+        ld=0
     }
     if(wk=="D"){
         downd=true;
+        ld=1
     }
     if (wk == "W" && gravy==0) {
         gravy=-6
     };
+    if (wk == "F" && fire==false) {
+        fire = true;
+        if(ld==1){
+            avatar.fire(avatar.x, avatar.y+5, 10, 2.5, 5)
+        } else {
+            avatar.fire(avatar.x, avatar.y + 5, 10, 2.5, -5)
+        }
+    }
 });
 document.addEventListener('keyup', function (event) {
     var x = event.charCode || event.keyCode;
@@ -201,7 +299,14 @@ function gameloop() {
     if (downd==true){
         avatar.mr()
     }
+    //console.log(getDistance(avatar.x, avatar.y, chao.x, chao.y))
     for (const sprite of sprites) sprite.draw(ctx);
-    window.requestAnimationFrame(gameloop);
+    if(gameover==false){
+        window.requestAnimationFrame(gameloop);
+    } else {
+        ctx.clearRect(0, 0, 500, 500);
+        ctx.font = "100px Arial";
+        ctx.fillText("Game Over!", 150, 300, 200)
+    }
 }
 
