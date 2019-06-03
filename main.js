@@ -22,12 +22,9 @@ class Projectile {
         this.a = a;
         this.color = color;
     }
-    build(){
-
-    }
     draw(ctx) {
         this.ix=this.ix+this.a
-        if(this.ix>=495 || this.ix<=-5){
+        if(this.ix>=995 || this.ix<=-5){
             for (let i=0; i<sprites.length; i++) {
                 if(sprites[i]==this){
                     sprites.splice(i, 1)
@@ -40,7 +37,14 @@ class Projectile {
                 for (let i = 0; i < sprites.length; i++) {
                     if (sprites[i] == sprite || sprites[i] == this) {
                         sprites.splice(i, 1)
-                        console.log("yes")
+                    }
+                }
+                fire = false;
+            }
+        if (getDistance(this.ix, this.iy, sprite.x, sprite.y, sprite.xx, sprite.yy) == true &&sprite instanceof RegularSprite) {
+                for (let i = 0; i < sprites.length; i++) {
+                    if (sprites[i] == this) {
+                        sprites.splice(i, 1)
                     }
                 }
                 fire = false;
@@ -60,34 +64,56 @@ class PhysicsSprite {
     }
     gravity(mass, cs) {
         let cb = 500;
-        gravy=gravy+(cs/10)
+        let cd = 0;
+        if(rg==true){
+            gravy=gravy-(cs/10)
+        }else{
+            gravy=gravy+(cs/10)
+        }
         let gravity=Math.round(gravy)
         let bottom = this.y+this.yy;
         let width = this.x+this.xx
         let cvbg = 100;
-        for (const sprite of sprites) {
-            /*if (((sprite.y-bottom) < cb && bottom<=sprite.y) && sprite.id != this.id && ((width > sprite.x) && (this.x < sprite.x + sprite.xx))) {
-                cb = sprite.y
-            }*/
-            if (getDistance(this.x, this.y + 10, sprite.x, sprite.y, sprite.xx, sprite.yy) == true && sprite.id!=this.id){
-                cb = sprite.y
-            }
-            if (getDistance(this.x, this.y + gravity-3, sprite.x, sprite.y, sprite.xx, sprite.yy) == true && sprite.id != this.id) {
-                if(gravy<0){
-                    gravy=0;
+        if (gravy>0) {
+            for (const sprite of sprites) {
+                if (getDistance(this.x, this.y + 10, sprite.x, sprite.y, sprite.xx, sprite.yy) == true && sprite.id!=this.id){
+                    cb = sprite.y
                 }
             }
-        }
-        if(bottom+gravity<=cb) {
-            this.y = this.y+gravity
-        }else{
-            while (bottom+cvbg>cb && cvbg>0){
-                cvbg = cvbg-1
+            if(bottom+gravity<=cb) {
+                this.y = this.y+gravity
+            }else{
+                while (bottom+cvbg>cb && cvbg>0){
+                    cvbg = cvbg-1
+                }
+                this.y=this.y+(cvbg)
             }
-            this.y=this.y+(cvbg)
-        }
-        if(bottom==cb && gravy>0){
-            gravy=0;
+            if(bottom==cb && gravy>0){
+                gravy=0;
+            }
+        } else {
+            function getDistance2(x,y,xx,yy, sx, sy){
+                if (((x + 10) > xx && (x) < xx+sx) && ((y)<yy+sx && (y)>yy)){
+                    return true;
+                }
+            }
+            for (const sprite of sprites) {
+                if (getDistance2(this.x, this.y-10, sprite.x, sprite.y, sprite.xx, sprite.yy) == true && sprite.id!=this.id){
+                    cd = sprite.y + sprite.yy
+                }
+            }
+            if(this.y+gravity>=cd) {
+                this.y = this.y+gravity
+            } else{
+                cvbg=-100
+                while (this.y+cvbg<cd && cvbg<0){
+                    cvbg = cvbg+1
+                }
+                this.y=this.y+(cvbg)
+            }
+            if(this.y==cd && gravy<0){
+                gravy=0;
+            }
         }
     }
     draw(ctx) {
@@ -120,7 +146,6 @@ class Player extends PhysicsSprite {
         }
     }
     mr() {
-        
         let tsotl = false;
         /*if(this.x+5<495){
             this.x=this.x+5
@@ -130,7 +155,7 @@ class Player extends PhysicsSprite {
                 tsotl = true
             }
         }
-        if (tsotl == false && this.x + 5 < 495) {
+        if (tsotl == false && this.x + 5 < 995) {
             this.x = this.x + 5
         }
     }
@@ -227,9 +252,9 @@ class CollisionBox extends RegularSprite {
         ctx.fillRect(this.x, this.y, this.xx, this.yy);
     }
 }
-
-gravy=0
-othersg=0
+let rg=false;
+let gravy=0
+let othersg=0
 let gameover=false
 var downa=false;
 var downd = false;
@@ -240,7 +265,7 @@ let fire = false;
 let ctx = null;
 let chao = new CollisionBox(50, 450, 400, 50, 'green');
 let floating = new CollisionBox(0, 300, 100, 50, 'green');
-let avatar = new Player(0, 0, 10, 10, 'black', 1);
+let avatar = new Player(0, 480, 10, 10, 'black', 1);
 let enemy = new Enemy(300, 300, 10, 10, 'red', 2, 0);
 
 let sprites = [];
@@ -257,25 +282,42 @@ function init() {
 document.addEventListener('keydown', function (event) {
     var x = event.charCode || event.keyCode;
     wk = String.fromCharCode(x)
-    if(wk=="A"){
-        downa=true;
-        ld=0
-    }
-    if(wk=="D"){
-        downd=true;
-        ld=1
-    }
-    if (wk == "W" && gravy==0) {
-        gravy=-6
-    };
-    if (wk == "F" && fire==false) {
-        fire = true;
-        if(ld==1){
-            avatar.fire(avatar.x, avatar.y+5, 10, 2.5, 5)
-        } else {
-            avatar.fire(avatar.x, avatar.y + 5, 10, 2.5, -5)
-        }
-    }
+    switch (wk) {
+        case "A":
+            downa=true;
+            ld=0
+            break;
+        case "D":
+            downd=true;
+            ld=1
+            break;
+        case "W":
+            if (gravy==0) {
+                if(rg==false){
+                    gravy=-6
+                }else{
+                    gravy=6
+                }
+            }
+            break;
+        case "F":
+            if (fire==false) {
+                fire = true;
+                if(ld==1){
+                    avatar.fire(avatar.x, avatar.y+5, 10, 2.5, 5)
+                } else {
+                    avatar.fire(avatar.x, avatar.y + 5, 10, 2.5, -5)
+                }
+            }
+            break;
+        case "R":
+            if(rg==true){
+                rg=false;
+            } else {
+                rg=true;
+            }
+            break;
+     }
 });
 document.addEventListener('keyup', function (event) {
     var x = event.charCode || event.keyCode;
@@ -289,10 +331,10 @@ document.addEventListener('keyup', function (event) {
 });
 function gameloop() {
     // ctx.globalCompositeOperation = 'destination-over';
-    ctx.clearRect(0, 0, 500, 500); // clear canvas
-    avatar.gravity(100, 1)
-    enemy.gravity(100, 1)
-    enemy.movee(100)
+    ctx.clearRect(0, 0, 1000, 1000); // clear canvas
+   // avatar.gravity(100, 1)
+   // enemy.gravity(100, 1)
+   // enemy.movee(100)
     if (downa==true){
         avatar.ml()
     }
@@ -300,11 +342,20 @@ function gameloop() {
         avatar.mr()
     }
     //console.log(getDistance(avatar.x, avatar.y, chao.x, chao.y))
-    for (const sprite of sprites) sprite.draw(ctx);
+    for (const sprite of sprites) {
+        if(sprite instanceof Enemy) {
+            sprite.gravity(100, 1)
+            sprite.movee(100)
+        }
+        if(sprite instanceof Player) {
+            sprite.gravity(100, 1)    
+        }
+        sprite.draw(ctx);
+    }
     if(gameover==false){
         window.requestAnimationFrame(gameloop);
     } else {
-        ctx.clearRect(0, 0, 500, 500);
+        ctx.clearRect(0, 0, 1000, 1000);
         ctx.font = "100px Arial";
         ctx.fillText("Game Over!", 150, 300, 200)
     }
